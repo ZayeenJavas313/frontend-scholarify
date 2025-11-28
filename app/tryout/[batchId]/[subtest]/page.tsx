@@ -1,6 +1,6 @@
 // app/tryout/[batchId]/[subtest]/page.tsx
 import QuestionPageClient from "../../components/QuestionPageClient"; // ⬅️ RELATIF, bukan "@/app/..."
-import { fetchSubtests, fetchSubtestQuestions } from "@/lib/api";
+import { fetchSubtests, fetchSubtestQuestions } from "@/app/lib/api";
 import type { Subtest as SubtestType } from "../../../../data/subtests";
 import type { Question as QuestionType } from "../../../../data/questions";
 

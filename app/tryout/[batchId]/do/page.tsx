@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { batches } from "@/data/batches";
 import SubtestListClient from "@/app/components/SubtestListClient";
-import { fetchSubtests, fetchSubtestQuestions } from "@/lib/api";
+import { fetchSubtests, fetchSubtestQuestions } from "@/app/lib/api";
 import type { Subtest as SubtestType } from "@/data/subtests";
 
 export default async function DoPage({
