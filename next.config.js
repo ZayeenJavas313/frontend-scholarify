@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Netlify akan otomatis handle Next.js dengan plugin @/plugin-nextjs
+  output: 'export',  // tambahkan ini agar Next.js bisa export static HTML
 };
 
 module.exports = nextConfig;
