@@ -11,49 +11,101 @@ interface SubtestStatsProps {
 }
 
 export default function SubtestStats({ data }: SubtestStatsProps) {
+  // Mapping warna untuk setiap subtest berdasarkan tema Scholarify
+  const getSubtestColor = (code: string) => {
+    const colorMap: Record<string, { bg: string; text: string; border: string }> = {
+      'PU': { 
+        bg: 'bg-blue-50', 
+        text: 'text-blue-700', 
+        border: 'border-blue-200' 
+      },
+      'PM': { 
+        bg: 'bg-emerald-50', 
+        text: 'text-emerald-700', 
+        border: 'border-emerald-200' 
+      },
+      'LBE': { 
+        bg: 'bg-violet-50', 
+        text: 'text-violet-700', 
+        border: 'border-violet-200' 
+      },
+      'LBI': { 
+        bg: 'bg-amber-50', 
+        text: 'text-amber-700', 
+        border: 'border-amber-200' 
+      },
+      'PK': { 
+        bg: 'bg-rose-50', 
+        text: 'text-rose-700', 
+        border: 'border-rose-200' 
+      },
+      'PBM': { 
+        bg: 'bg-indigo-50', 
+        text: 'text-indigo-700', 
+        border: 'border-indigo-200' 
+      },
+      'PPU': { 
+        bg: 'bg-orange-50', 
+        text: 'text-orange-700', 
+        border: 'border-orange-200' 
+      },
+    };
+    
+    // Default color untuk subtest yang tidak terdaftar (menggunakan tema Scholarify)
+    return colorMap[code] || { 
+      bg: 'bg-[#EEC0A3]/20', 
+      text: 'text-[#4B2F1F]', 
+      border: 'border-[#D9A684]/40' 
+    };
+  };
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6">
-      <h2 className="text-lg font-semibold text-slate-900 mb-4">Statistik Per Subtest</h2>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Subtest
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Soal
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Pengerjaan
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Rata-rata Skor
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-slate-200">
-            {data.map((item, idx) => (
-              <tr key={idx} className="hover:bg-slate-50">
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <div className="text-sm font-medium text-slate-900">{item.nama}</div>
-                  <div className="text-xs text-slate-500">{item.code}</div>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
-                  {item.jumlah_soal}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-600">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 p-3 hover:shadow-lg transition-shadow duration-300">
+      <div className="mb-2 pb-1.5 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-sm">
+            <span className="text-white text-sm">📊</span>
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Statistik Per Subtest</h2>
+            <p className="text-[9px] text-slate-500 font-medium">Ringkasan performa per subtest</p>
+          </div>
+        </div>
+      </div>
+      <div className="space-y-1">
+        {data.map((item, idx) => {
+          const colors = getSubtestColor(item.code);
+  return (
+            <div
+              key={idx}
+              className="flex items-center justify-between p-1.5 bg-slate-50/50 rounded-xl hover:bg-slate-100/50 transition-colors duration-200 border border-slate-200/50"
+            >
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <span className={`inline-flex items-center justify-center w-7 h-7 text-[9px] font-bold rounded-xl ${colors.bg} ${colors.text} border ${colors.border} flex-shrink-0 shadow-sm`}>
+                  {item.code}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-slate-900 truncate">{item.nama}</p>
+                  <p className="text-[9px] text-slate-500">{item.jumlah_soal} soal</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 mb-0.5">Pengerjaan</p>
+                  <p className={`text-[11px] font-bold ${item.total_pengerjaan > 0 ? 'text-red-600' : 'text-slate-400'}`}>
                   {item.total_pengerjaan}
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <span className="text-sm font-medium text-slate-900">
-                    {item.avg_skor.toFixed(2)}%
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[9px] text-slate-500 mb-0.5">Rata-rata</p>
+                  <p className="text-[11px] font-bold text-slate-900">
+                    {Math.round(item.avg_skor)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

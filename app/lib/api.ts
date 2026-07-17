@@ -27,41 +27,133 @@ export interface Question {
  */
 export async function fetchSubtests(): Promise<Subtest[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subtests/`, {
+    const apiUrl = `${API_BASE_URL}/subtests/`;
+    console.log("Fetching subtests from:", apiUrl);
+    
+    let response;
+    try {
+      response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch subtests: ${response.statusText}`);
+        credentials: 'include',
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // Network error atau backend tidak bisa dijangkau
+      console.error("Fetch error in fetchSubtests:", fetchError);
+      const errorMessage = fetchError.message || "Unknown error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.error(`Backend server tidak dapat dijangkau di ${API_BASE_URL.replace('/api', '')}`);
+        console.error("Pastikan backend Django berjalan dan CORS sudah dikonfigurasi");
+      }
+      
+      // Return empty array untuk prevent UI crash
+      console.warn('Returning empty array due to network error');
+      return [];
     }
 
-    return await response.json();
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = `Failed to fetch subtests: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text.substring(0, 200);
+          }
+        } catch (textError) {
+          // Ignore text parsing error
+        }
+      }
+      console.error("Error response:", errorMessage);
+      // Return empty array instead of throwing to prevent UI crash
+      console.warn('Returning empty array due to error response');
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("Fetched subtests from API:", data.length, data);
+    return data;
   } catch (error) {
     console.error('Error fetching subtests:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent UI crash
+    console.warn('Returning empty array due to error');
+    return [];
   }
 }
 
 /**
  * Fetch questions untuk subtest tertentu
+ * @param subtestCode - Kode subtest (e.g., "pu", "pm")
+ * @param batchId - Optional batch ID untuk filter soal berdasarkan batch
  */
-export async function fetchSubtestQuestions(subtestCode: string): Promise<Question[]> {
+export async function fetchSubtestQuestions(subtestCode: string, batchId?: string): Promise<Question[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/subtests/${subtestCode}/questions/`, {
+    // Build URL with optional batch_id query parameter
+    let url = `${API_BASE_URL}/subtests/${subtestCode}/questions/`;
+    if (batchId) {
+      url += `?batch_id=${encodeURIComponent(batchId)}`;
+    }
+    
+    console.log("Fetching questions from:", url);
+    
+    let response;
+    try {
+      response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-    });
+        credentials: 'include',
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // Network error atau backend tidak bisa dijangkau
+      console.error("Fetch error in fetchSubtestQuestions:", fetchError);
+      const errorMessage = fetchError.message || "Unknown error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.error(`Backend server tidak dapat dijangkau di ${API_BASE_URL.replace('/api', '')}`);
+        console.error("Pastikan backend Django berjalan dan CORS sudah dikonfigurasi");
+      }
+      
+      // Return empty array untuk prevent UI crash
+      console.warn('Returning empty array due to network error');
+      return [];
+    }
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch questions: ${response.statusText}`);
+      // Try to get error message from response
+      let errorMessage = `Failed to fetch questions: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text.substring(0, 200);
+          }
+        } catch (textError) {
+          // Ignore text parsing error
+        }
+      }
+      console.error("Error response:", errorMessage);
+      // Return empty array instead of throwing to prevent UI crash
+      console.warn('Returning empty array due to error response');
+      return [];
     }
 
     const data = await response.json();
+    console.log(`Fetched ${data.length} questions for subtest ${subtestCode}`);
     // Pastikan soal_id ada di setiap question
     return data.map((q: any) => ({
       ...q,
@@ -69,7 +161,9 @@ export async function fetchSubtestQuestions(subtestCode: string): Promise<Questi
     }));
   } catch (error) {
     console.error(`Error fetching questions for ${subtestCode}:`, error);
-    throw error;
+    // Return empty array instead of throwing to prevent UI crash
+    console.warn('Returning empty array due to error');
+    return [];
   }
 }
 
@@ -152,23 +246,146 @@ export async function fetchRiwayatNilai(username: string): Promise<Array<{
   tanggal: string;
 }>> {
   try {
-    const response = await fetch(`${API_BASE_URL}/riwayat-nilai/${username}/`, {
+    const apiUrl = `${API_BASE_URL}/riwayat-nilai/${username}/`;
+    console.log("Fetching riwayat nilai from:", apiUrl);
+    
+    let response;
+    try {
+      response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch history: ${response.statusText}`);
+        credentials: 'include',
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // Network error atau backend tidak bisa dijangkau
+      console.error("Fetch error in fetchRiwayatNilai:", fetchError);
+      const errorMessage = fetchError.message || "Unknown error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.error(`Backend server tidak dapat dijangkau di ${API_BASE_URL.replace('/api', '')}`);
+        console.error("Pastikan backend Django berjalan dan CORS sudah dikonfigurasi");
+      }
+      
+      // Return empty array untuk prevent UI crash
+      console.warn('Returning empty array due to network error');
+      return [];
     }
 
-    return await response.json();
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = `Failed to fetch history: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text.substring(0, 200);
+          }
+        } catch (textError) {
+          // Ignore text parsing error
+        }
+      }
+      console.error("Error response:", errorMessage);
+      // Return empty array instead of throwing to prevent UI crash
+      console.warn('Returning empty array due to error response');
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("Fetched riwayat nilai from API:", data.length, "records");
+    return data;
   } catch (error) {
     console.error('Error fetching history:', error);
-    throw error;
+    // Return empty array instead of throwing to prevent UI crash
+    console.warn('Returning empty array due to error');
+    return [];
   }
 }
 
 
 
+
+/**
+ * Fetch semua batches dari backend (public endpoint)
+ */
+export async function fetchBatches(): Promise<Array<{
+  id: number;
+  batch_id: string;
+  title: string;
+  date: string;
+  date_display: string;
+  deadline?: string;
+  deadline_display?: string;
+  status: 'available' | 'locked';
+  description: string;
+  duration?: number;
+  subtests_info?: Array<{ code: string; title: string }>;
+}>> {
+  try {
+    const apiUrl = `${API_BASE_URL}/batches/`;
+    console.log("Fetching batches from:", apiUrl);
+    
+    let response;
+    try {
+      response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // Network error atau backend tidak bisa dijangkau
+      console.error("Fetch error:", fetchError);
+      const errorMessage = fetchError.message || "Unknown error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.error(`Backend server tidak dapat dijangkau di ${API_BASE_URL.replace('/api', '')}`);
+        console.error("Pastikan backend Django berjalan dan CORS sudah dikonfigurasi");
+      }
+      
+      // Return empty array untuk prevent UI crash
+      console.warn('Returning empty array due to network error');
+      return [];
+    }
+
+    if (!response.ok) {
+      // Try to get error message from response
+      let errorMessage = `Failed to fetch batches: ${response.status} ${response.statusText}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try to get text
+        try {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text.substring(0, 200);
+          }
+        } catch (textError) {
+          // Ignore text parsing error
+        }
+      }
+      console.error("Error response:", errorMessage);
+      // Return empty array instead of throwing to prevent UI crash
+      console.warn('Returning empty array due to error response');
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("Fetched batches from API:", data.length, data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching batches:', error);
+    // Return empty array instead of throwing to prevent UI crash
+    console.warn('Returning empty array due to error');
+    return [];
+  }
+}

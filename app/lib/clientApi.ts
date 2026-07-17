@@ -36,13 +36,65 @@ export async function submitJawaban(
 }
 
 export async function fetchRiwayatNilai(username: string) {
-  const res = await fetch(`${API_BASE}/riwayat-nilai/${username}/`, {
-    method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
-  });
+  try {
+    const apiUrl = `${API_BASE}/riwayat-nilai/${username}/`;
+    console.log("Fetching riwayat nilai from:", apiUrl);
+    
+    let res;
+    try {
+      res = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        cache: 'no-store',
+      });
+    } catch (fetchError: any) {
+      // Network error atau backend tidak bisa dijangkau
+      console.error("Fetch error in fetchRiwayatNilai:", fetchError);
+      const errorMessage = fetchError.message || "Unknown error";
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("NetworkError")) {
+        console.error(`Backend server tidak dapat dijangkau di ${API_BASE.replace('/api', '')}`);
+        console.error("Pastikan backend Django berjalan dan CORS sudah dikonfigurasi");
+      }
+      
+      // Return empty array untuk prevent UI crash
+      console.warn('Returning empty array due to network error');
+      return [];
+    }
 
-  if (!res.ok) throw new Error(`Failed to fetch history: ${res.statusText}`);
-  return res.json();
+    if (!res.ok) {
+      // Try to get error message from response
+      let errorMessage = `Failed to fetch history: ${res.status} ${res.statusText}`;
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.error || errorData.detail || errorMessage;
+      } catch (e) {
+        // If response is not JSON, try to get text
+        try {
+          const text = await res.text();
+          if (text) {
+            errorMessage = text.substring(0, 200);
+          }
+        } catch (textError) {
+          // Ignore text parsing error
+        }
+      }
+      console.error("Error response:", errorMessage);
+      // Return empty array instead of throwing to prevent UI crash
+      console.warn('Returning empty array due to error response');
+      return [];
+    }
+
+    const data = await res.json();
+    console.log("Fetched riwayat nilai from API:", data.length, "records");
+    return data;
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    // Return empty array instead of throwing to prevent UI crash
+    console.warn('Returning empty array due to error');
+    return [];
+  }
 }
 
 export default {};

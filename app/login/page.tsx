@@ -25,23 +25,52 @@ function Login() {
         body: JSON.stringify({ username, password }),
       });
       
-      const data = await res.json().catch(() => ({}));
+      let data: any = {};
+      try {
+        data = await res.json();
+        console.log("[Login Page] Response data:", data);
+      } catch (e) {
+        console.error("[Login Page] Error parsing JSON:", e);
+        const text = await res.text();
+        console.error("[Login Page] Response text:", text);
+        throw new Error("Gagal memparse response dari server");
+      }
       
-      if (!res.ok || !data?.ok) {
+      if (!res.ok) {
+        console.error("[Login Page] Response not ok:", res.status, data);
         throw new Error(data?.error || "Gagal login");
       }
+      
+      if (!data?.ok) {
+        console.error("[Login Page] Data.ok is false:", data);
+        throw new Error(data?.error || "Gagal login");
+      }
+      
+      if (!data?.user) {
+        console.error("[Login Page] No user in response:", data);
+        throw new Error("Response tidak valid: user tidak ditemukan");
+      }
+      
+      console.log("[Login Page] Login successful, redirecting...");
       
       // Cek role user dari response
       const userRole = data?.user?.role || "student";
       
+      // Wait a bit untuk memastikan cookie ter-set
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Redirect berdasarkan role
       if (userRole === "admin") {
-        router.replace("/admin");
+        console.log("[Login Page] Redirecting to /admin");
+        // Gunakan window.location untuk force navigation
+        window.location.href = "/admin";
       } else {
-      router.replace(from);
+        console.log("[Login Page] Redirecting to:", from);
+        window.location.href = from;
       }
     } catch (e: any) {
-      setErr(e.message || "Gagal login");
+      console.error("[Login Page] Error:", e);
+      setErr(e.message || "Gagal login. Pastikan backend Django berjalan di http://localhost:8000");
     } finally {
       setLoading(false);
     }

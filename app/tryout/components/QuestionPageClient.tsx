@@ -36,6 +36,8 @@ export default function QuestionPageClient({
   const [storageKey, setStorageKey] = useState<string | null>(null);
   const [username, setUsername] = useState<string>("guest");
   const [initialSeconds, setInitialSeconds] = useState(0);
+  // Track apakah user sudah submit jawaban
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
     const initStorageKey = async () => {
@@ -88,6 +90,9 @@ export default function QuestionPageClient({
       answersCount: Object.keys(answers).length,
       answers: answers,
     });
+    
+    // Set flag bahwa user sudah submit, sehingga bisa keluar
+    setIsSubmitted(true);
     
     markSubtestDone();
     
@@ -213,6 +218,63 @@ export default function QuestionPageClient({
     }
   }, [batchId, subtest.id, router, storageKey]);
 
+  // Prevent user from leaving page before submitting answers
+  useEffect(() => {
+    if (typeof window === "undefined" || isSubmitted) return;
+    
+    // Handler untuk beforeunload (menutup tab/browser/refresh)
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Standard way untuk modern browsers
+      e.preventDefault();
+      // Modern browsers require returnValue to be set
+      e.returnValue = "Apakah Anda yakin ingin keluar? Jawaban yang belum dikirim akan hilang.";
+      return e.returnValue;
+    };
+
+    // Flag untuk mencegah infinite loop
+    let isHandlingPopState = false;
+
+    // Handler untuk popstate (back button)
+    const handlePopState = (e: PopStateEvent) => {
+      if (isHandlingPopState || isSubmitted) return;
+      
+      isHandlingPopState = true;
+      
+      // Prevent back navigation dengan push state lagi
+      window.history.pushState(null, "", window.location.href);
+      
+      // Show confirmation
+      const confirmLeave = window.confirm(
+        "Apakah Anda yakin ingin keluar? Jawaban yang belum dikirim akan hilang."
+      );
+      
+      if (confirmLeave) {
+        // User confirmed, allow navigation
+        setIsSubmitted(true);
+        // Navigate back after a short delay to allow state update
+        setTimeout(() => {
+          window.history.back();
+          isHandlingPopState = false;
+        }, 100);
+      } else {
+        isHandlingPopState = false;
+      }
+    };
+
+    // Push state untuk intercept back button (hanya sekali saat mount)
+    window.history.pushState(null, "", window.location.href);
+    
+    // Add event listeners
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [isSubmitted]);
+
   const currentQuestion = questions[currentIndex];
 
   const handleSelectAnswer = (value: string) => {
@@ -251,10 +313,10 @@ export default function QuestionPageClient({
 
   // dropdown navigasi soal (di header)
   const navPanel = (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-lg p-4 space-y-3 max-h-64 overflow-y-auto">
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-lg p-4 space-y-3 max-h-64 overflow-y-auto question-nav-panel">
           <div>
-        <h2 className="text-sm font-semibold text-slate-900">Navigasi Soal</h2>
-            <p className="text-xs text-slate-400">Pilih nomor soal</p>
+        <h2 className="text-sm font-semibold text-slate-900 question-nav-panel-title">Navigasi Soal</h2>
+            <p className="text-xs text-slate-400 question-nav-panel-subtitle">Pilih nomor soal</p>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -268,7 +330,7 @@ export default function QuestionPageClient({
                 <button
                   key={idx}
                   onClick={() => goTo(idx)}
-                  className={`w-9 h-9 rounded-lg text-sm font-medium
+                  className={`w-9 h-9 rounded-lg text-sm font-medium question-nav-number
                     ${
                       active
                         ? "bg-[#EEC0A3] text-[#4B2F1F]"
@@ -284,7 +346,7 @@ export default function QuestionPageClient({
             })}
           </div>
 
-          <div className="flex items-center gap-3 pt-2 text-[11px] text-slate-500">
+          <div className="flex items-center gap-3 pt-2 text-[11px] text-slate-500 question-nav-legend">
             <span className="inline-flex w-3 h-3 rounded bg-[#EEC0A3]" />{" "}
             Sedang dikerjakan
             <span className="inline-flex w-3 h-3 rounded bg-[#D9F99D]" />{" "}
@@ -296,22 +358,22 @@ export default function QuestionPageClient({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 question-page-container">
       {/* KIRI: kartu utama soal */}
-      <div className="flex-1 bg-white rounded-3xl shadow-sm p-8 flex flex-col min-h-[70vh] relative">
+      <div className="flex-1 bg-white rounded-3xl shadow-sm p-8 flex flex-col min-h-[70vh] relative question-card-main">
         {/* 1) HEADER: subtest + navigasi; countdown di pojok kanan atas */}
-        <div className="mb-5">
+        <div className="mb-5 question-header">
           {/* Countdown absolute di pojok kanan atas */}
-          <div className="absolute top-6 right-8 text-right">
-            <p className="text-[11px] sm:text-xs text-slate-400">Sisa waktu</p>
-            <p className="text-xl sm:text-2xl font-bold text-slate-900 tracking-wide">
+          <div className="absolute top-6 right-8 text-right question-countdown">
+            <p className="text-[11px] sm:text-xs text-slate-400 question-countdown-label">Sisa waktu</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 tracking-wide question-countdown-time">
               {timeString}
             </p>
           </div>
 
           {/* Judul + tombol navigasi */}
           <div className="flex flex-col gap-2 pr-28 sm:pr-40">
-            <p className="text-[11px] sm:text-xs uppercase tracking-[0.25em] text-slate-400">
+            <p className="text-[11px] sm:text-xs uppercase tracking-[0.25em] text-slate-400 question-subtest-title">
               {subtest.title}
             </p>
             <div>
@@ -319,7 +381,7 @@ export default function QuestionPageClient({
                 <button
                   type="button"
                   onClick={() => setShowMobileNav((v) => !v)}
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100"
+                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 question-nav-button"
                 >
                   Navigasi Soal
                   <span className="text-[9px]">
@@ -337,34 +399,82 @@ export default function QuestionPageClient({
         </div>
 
         {/* 2) AREA SOAL: full width, hanya soal yang bisa discroll */}
-        <div className="flex-1 overflow-y-auto pr-2 text-sm leading-relaxed text-slate-900 text-justify">
+        <div className="flex-1 overflow-y-auto pr-2 text-sm leading-relaxed text-slate-900 text-justify question-text-area">
           {/* Teks soal */}
           {currentQuestion?.question ??
             (currentQuestion as any)?.text ??
             "Soal"}
           
           {/* Gambar soal (jika ada) */}
-          {(currentQuestion as any)?.question_image && (
-            <div className="mt-4">
-              <img
-                src={(currentQuestion as any).question_image}
-                alt="Gambar Soal"
-                className="max-w-full h-auto rounded-lg border border-slate-200 shadow-sm"
-                onError={(e) => {
-                  // Fallback jika gambar gagal load
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-            </div>
-          )}
+          {(currentQuestion as any)?.question_image && (() => {
+            const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api';
+            const BACKEND_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+            const imageUrl = (currentQuestion as any).question_image;
+            
+            // Resolve image URL
+            let finalImageUrl = imageUrl;
+            if (imageUrl && typeof imageUrl === 'string') {
+              if (imageUrl.startsWith('/media/')) {
+                // Path relatif /media/ -> tambahkan backend origin
+                finalImageUrl = `${BACKEND_ORIGIN}${imageUrl}`;
+              } else if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+                // URL lengkap -> gunakan langsung
+                finalImageUrl = imageUrl;
+              } else {
+                // Path relatif lainnya -> tambahkan /media/ dan backend origin
+                finalImageUrl = `${BACKEND_ORIGIN}/media/${imageUrl}`;
+              }
+            }
+            
+            return (
+              <div className="mt-4">
+                <img
+                  src={finalImageUrl}
+                  alt="Gambar Soal"
+                  className="max-w-full h-auto rounded-lg border border-slate-200 shadow-sm"
+                  loading="lazy"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    const errorInfo = {
+                      finalUrl: finalImageUrl,
+                      originalUrl: imageUrl,
+                      backendOrigin: BACKEND_ORIGIN,
+                      apiBase: API_BASE,
+                      timestamp: new Date().toISOString()
+                    };
+                    console.error('Error loading question image:', errorInfo);
+                    
+                    // Fallback: coba dengan URL alternatif jika gagal
+                    if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('/media/')) {
+                      // Coba dengan URL yang berbeda jika ada
+                      const fallbackUrl = `${BACKEND_ORIGIN}${imageUrl}`;
+                      if (fallbackUrl !== finalImageUrl && !img.dataset.fallbackAttempted) {
+                        console.log('Trying fallback URL:', fallbackUrl);
+                        img.dataset.fallbackAttempted = 'true';
+                        img.src = fallbackUrl;
+                        return;
+                      }
+                    }
+                    
+                    // Jika masih gagal, tampilkan placeholder atau sembunyikan
+                    console.warn('Failed to load image after fallback attempts');
+                    img.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('Image loaded successfully:', finalImageUrl);
+                  }}
+                />
+              </div>
+            );
+          })()}
           
-          <p className="text-xs text-slate-500 mt-4">
+          <p className="text-xs text-slate-500 mt-4 question-number">
             Nomor soal : {currentIndex + 1} / {questions.length}
           </p>
         </div>
 
         {/* 3) OPSI + FOOTER: selalu di bawah, tidak ikut scroll */}
-        <div className="mt-4 pt-4 border-t border-slate-100 space-y-6">
+        <div className="mt-4 pt-4 border-t border-slate-100 space-y-6 question-options-container">
           {/* opsi jawaban */}
           <div className="space-y-3">
             {(currentQuestion?.options ??
@@ -376,8 +486,23 @@ export default function QuestionPageClient({
                 typeof opt === "string"
                   ? opt
                   : opt?.label ?? opt?.text ?? `Pilihan ${i + 1}`;
-              const value =
-                typeof opt === "string" ? opt : opt?.value ?? label;
+              // PASTIKAN value adalah huruf A/B/C/D/E, bukan teks pilihan!
+              // Gunakan huruf berdasarkan index (0=A, 1=B, 2=C, 3=D, 4=E)
+              const value = String.fromCharCode(65 + i); // 65 = 'A', 66 = 'B', dst.
+
+              // detect apakah label adalah path gambar (mis. "/media/..." atau url yang berakhiran ekstensi gambar)
+              const isString = typeof label === "string";
+              const looksLikeMediaPath = isString && (label.startsWith("/media/") || /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(label) || /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(label));
+
+              // jika path relatif ke /media, gunakan origin backend (NEXT_PUBLIC_API_BASE_URL) supaya browser memuatnya dari Django
+              const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
+              const getImageSrc = (p: string) => {
+                if (!p) return p;
+                if (p.startsWith("/media/")) {
+                  return `${BACKEND_ORIGIN}${p}`;
+                }
+                return p;
+              };
 
               // Cek jawaban menggunakan soal_id atau index
               const currentQ = questions[currentIndex] as any;
@@ -387,32 +512,44 @@ export default function QuestionPageClient({
                 <button
                   key={i}
                   onClick={() => handleSelectAnswer(value)}
-                  className={`w-full text-left px-4 py-3 rounded-xl border transition
+                  className={`w-full text-left px-4 py-3.5 rounded-xl border-2 transition-all duration-200 relative question-option
                     ${
                       selected
-                        ? "border-[#EEC0A3] bg-[#EEC0A3]/30 text-[#4B2F1F]"
-                        : "border-[#F1D7C8] bg-[#FFF9F4] hover:bg-[#FFF2EA] text-[#4B2F1F]"
+                        ? "border-[#FF8268] bg-[#FFB4A2] text-[#3D2E26] shadow-lg shadow-[#FFB4A2]/40 font-semibold ring-2 ring-[#FFB4A2]/20"
+                        : "border-slate-200 bg-white text-[#6B5D52] hover:border-slate-300 hover:bg-slate-50/80 hover:shadow-sm font-normal"
                     }
                   `}
                 >
-                  {label}
+                  {looksLikeMediaPath ? (
+                    <img
+                      src={getImageSrc(String(label))}
+                      alt={`Pilihan ${i + 1}`}
+                      className="max-w-full h-auto rounded-md"
+                      onError={(e) => {
+                        // kalau gagal load, sembunyikan gambar dan tunjukkan teks path sebagai fallback
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    label
+                  )}
                 </button>
               );
             })}
         </div>
 
           {/* footer navigasi soal */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between question-nav-footer">
             {/* kiri: soal sebelumnya */}
             <button
               onClick={() => goTo(currentIndex - 1)}
               disabled={currentIndex === 0}
-              className="px-4 py-2 rounded-xl border text-[10px] text-slate-700 disabled:opacity-40"
+              className="px-4 py-2 rounded-xl border text-[10px] text-slate-700 disabled:opacity-40 question-nav-button-footer"
             >
               Sebelumnya
             </button>
 
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-slate-500 question-nav-info">
               Nomor Soal : {currentIndex + 1} / {questions.length}
             </p>
 
@@ -420,14 +557,14 @@ export default function QuestionPageClient({
             {currentIndex === questions.length - 1 ? (
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 rounded-xl bg-[#EEC0A3] text-[#4B2F1F] text-[10px] font-medium hover:bg-[#D9A684] transition-colors"
+                className="px-4 py-2 rounded-xl bg-[#EEC0A3] text-[#4B2F1F] text-[10px] font-medium hover:bg-[#D9A684] transition-colors question-submit-button"
               >
                 Kirim Jawaban
               </button>
             ) : (
               <button
                 onClick={() => goTo(currentIndex + 1)}
-                className="px-4 py-2 rounded-xl border text-[10px] text-slate-700"
+                className="px-4 py-2 rounded-xl border text-[10px] text-slate-700 question-nav-button-footer"
               >
                 Selanjutnya
               </button>

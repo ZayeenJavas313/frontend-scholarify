@@ -16,3 +16,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.tsbuildinfo
+
+# assets junk
+public/landing/assets/Pendataan Zakat Fitrah*/
+public/landing/assets/hero-student*

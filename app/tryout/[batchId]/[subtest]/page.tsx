@@ -33,8 +33,8 @@ export default async function SubtestPage({
         code: backendSubtest.code, // tambahkan code untuk submit jawaban
       } as SubtestType & { code: string };
 
-      // Fetch questions from backend
-      const backendQuestions = await fetchSubtestQuestions(backendSubtest.code);
+      // Fetch questions from backend, filtered by batchId
+      const backendQuestions = await fetchSubtestQuestions(backendSubtest.code, batchId);
       subtestQuestions = backendQuestions;
     }
   } catch (error) {
@@ -53,7 +53,7 @@ export default async function SubtestPage({
           </p>
           <a
             href={`/tryout/${batchId}/do`}
-            className="inline-flex mt-2 px-4 py-2 rounded-xl bg-[#EEC0A3] text-[#4B2F1F] text-sm hover:bg-[#D9A684] transition-colors"
+            className="inline-flex mt-2 px-4 py-2 rounded-xl bg-[#FFB4A2] text-[#3D2E26] text-sm hover:bg-[#FF9B85] transition-all duration-300 shadow-sm hover:shadow-md"
           >
             ← Kembali
           </a>
@@ -63,8 +63,8 @@ export default async function SubtestPage({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-10">
-      <div className="max-w-6xl mx-auto px-4">
+    <div className="min-h-screen bg-slate-50 py-4 sm:py-6 md:py-10">
+      <div className="max-w-6xl mx-auto px-2 sm:px-3 md:px-4">
         <QuestionPageClient
           batchId={batchId}
           subtest={currentSubtest}
